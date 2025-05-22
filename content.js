@@ -104,7 +104,7 @@ function copyToClipboard(text) {
 }
 
 function generateCommand(url, format) {
-  return `yt-dlp -f "${format}" "${url}"`;
+  return `yt-dlp -f ${format} "${url}"`;
 }
 
 function createDownloadUI() {
@@ -115,10 +115,10 @@ function createDownloadUI() {
   buttonGrid.className = "ytdlp-grid";
 
   const formats = [
-    { label: "720p", format: "bv*[height<=720][ext=mp4]+ba[ext=m4a]" },
-    { label: "1080p", format: "bv*[height<=1080][ext=mp4]+ba[ext=m4a]" },
-    { label: "4K", format: "bv*[height<=2160][ext=mp4]+ba[ext=m4a]" },
-    { label: "Audio", format: "ba[ext=m4a]" },
+    { label: "720p", format: "'bv[height<=720]+ba'" },
+    { label: "1080p", format: "'bv*[height<=1080][ext=mp4]+ba[ext=m4a]'" },
+    { label: "4K", format: "'bv*[height<=2160][ext=mp4]+ba[ext=m4a]'" },
+    { label: "Audio", format: "'ba[ext=m4a]'" },
   ];
 
   formats.forEach(({ label, format }) => {
