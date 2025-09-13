@@ -1,94 +1,63 @@
 function injectStyles() {
   const style = document.createElement("style");
   style.textContent = `
-    .ytdlp-container {
-      margin: 1rem;
-      padding: 1rem;
-      background-color: #f3f4f6;
-      border-radius: 0.5rem;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .ytdlp-container {
-        background-color: #1f2937;
-        box-shadow: 0 1px 2px rgba(255, 255, 255, 0.05);
-      }
-    }
-
-    .ytdlp-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 0.5rem;
-      width: 100%;
-    }
-
-    .ytdlp-button {
-      background-color: #065fd4;
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 9999px;
-      font-size: 0.875rem;
-      font-weight: 500;
+    .ytdlp-main-button {
+      background: rgba(255, 255, 255, 0.1);
       border: none;
       cursor: pointer;
-      transition: background-color 0.2s;
-      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 8px;
+      margin-left: 8px;
+      border-radius: 100%;
     }
 
-    @media (prefers-color-scheme: dark) {
-      .ytdlp-button {
-        background-color: #3b82f6;
-      }
+    .ytdlp-main-button svg {
+      width: 24px;
+      height: 24px;
+      fill: rgba(255, 255, 255, 0.8);
     }
 
-    .ytdlp-button:hover {
-      background-color: #0355b9;
+    .ytdlp-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 8px;
+      min-width: 200px;
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      display: none;
+      z-index: 1000;
     }
 
-    @media (prefers-color-scheme: dark) {
-      .ytdlp-button:hover {
-        background-color: #2563eb;
-      }
+    .ytdlp-dropdown.show {
+      display: block;
     }
 
-    .ytdlp-button:focus {
-      box-shadow: 0 0 0 2px #065fd4, 0 0 0 4px rgba(6, 95, 212, 0.3);
+    .ytdlp-dropdown-item {
+      display: block;
+      width: 100%;
+      padding: 8px 12px;
+      background: none;
+      border: none;
+      color: #000;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
     }
 
-    @media (prefers-color-scheme: dark) {
-      .ytdlp-button:focus {
-        box-shadow: 0 0 0 2px #3b82f6, 0 0 0 4px rgba(59, 130, 246, 0.3);
-      }
+    .ytdlp-dropdown-item:hover {
+      background-color: rgba(0, 0, 0, 0.05);
     }
 
-    .ytdlp-button.copied {
-      background-color: #059669;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .ytdlp-button.copied {
-        background-color: #10b981;
-      }
-    }
-
-    .ytdlp-instructions {
-      margin-top: 0.75rem;
-      text-align: center;
-      color: #666;
-      font-size: 0.875rem;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .ytdlp-instructions {
-        color: #9ca3af;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .ytdlp-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
+    .ytdlp-dropdown-item.copied {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: #10b981;
     }
   `;
   document.head.appendChild(style);
@@ -107,12 +76,21 @@ function generateCommand(url, format) {
   return `yt-dlp -f ${format} "${url}"`;
 }
 
-function createDownloadUI() {
-  const container = document.createElement("div");
-  container.className = "ytdlp-container";
+function createDownloadButton() {
+  const button = document.createElement("button");
+  button.className = "ytdlp-main-button";
+  button.title = "yt-dlp Download";
+  button.setAttribute("aria-label", "yt-dlp Download");
 
-  const buttonGrid = document.createElement("div");
-  buttonGrid.className = "ytdlp-grid";
+  // Download icon SVG
+  button.innerHTML = `
+    <svg viewBox="0 0 24 24">
+      <path d="M3 19H21V21H3V19ZM13 13.1716L19.0711 7.1005L20.4853 8.51472L12 17L3.51472 8.51472L4.92893 7.1005L11 13.1716V2H13V13.1716Z"/>
+    </svg>
+  `;
+
+  const dropdown = document.createElement("div");
+  dropdown.className = "ytdlp-dropdown";
 
   const formats = [
     { label: "720p", format: "'bv[height<=720]+ba'" },
@@ -122,59 +100,63 @@ function createDownloadUI() {
   ];
 
   formats.forEach(({ label, format }) => {
-    const button = document.createElement("button");
-    button.className = "ytdlp-button";
-    button.textContent = `Copy ${label}`;
+    const item = document.createElement("button");
+    item.className = "ytdlp-dropdown-item";
+    item.textContent = `Copy ${label}`;
 
-    button.onclick = () => {
+    item.onclick = (e) => {
+      e.stopPropagation();
       const videoUrl = window.location.href;
       const command = generateCommand(videoUrl, format);
       copyToClipboard(command);
 
-      const originalText = button.textContent;
-      button.textContent = "Copied!";
-      button.classList.add("copied");
+      const originalText = item.textContent;
+      item.textContent = "Copied!";
+      item.classList.add("copied");
 
       setTimeout(() => {
-        button.textContent = originalText;
-        button.classList.remove("copied");
+        item.textContent = originalText;
+        item.classList.remove("copied");
       }, 2000);
     };
 
-    buttonGrid.appendChild(button);
+    dropdown.appendChild(item);
   });
 
-  container.appendChild(buttonGrid);
+  button.appendChild(dropdown);
 
-  const instructions = document.createElement("div");
-  instructions.className = "ytdlp-instructions";
-  instructions.textContent =
-    "Paste the copied command in terminal/PowerShell to download";
-  container.appendChild(instructions);
+  // Toggle dropdown on click
+  button.onclick = (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle("show");
+  };
 
-  return container;
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!button.contains(e.target)) {
+      dropdown.classList.remove("show");
+    }
+  });
+
+  return button;
 }
 
-function addDownloadButtons() {
-  if (document.querySelector(".ytdlp-container")) return;
+function addDownloadButton() {
+  if (document.querySelector(".ytdlp-main-button")) return;
 
-  const possibleContainers = [
-    document.querySelector("ytd-watch-metadata"),
-    document.querySelector("#below"),
-    document.querySelector("#info-contents"),
-    document.querySelector("#top-row"),
-  ];
+  // Look for the actions div
+  const actionsDiv = document.querySelector("#actions");
+  if (!actionsDiv) return;
 
-  const targetContainer = possibleContainers.find((el) => el);
-  if (!targetContainer) return;
+  const downloadButton = createDownloadButton();
 
-  const downloadUI = createDownloadUI();
-  targetContainer.insertBefore(downloadUI, targetContainer.firstChild);
+  // Add as the last item in the actions div
+  actionsDiv.appendChild(downloadButton);
 }
 
 // Initial setup
 injectStyles();
-setTimeout(addDownloadButtons, 1000);
+setTimeout(addDownloadButton, 1000);
 
 // Watch for navigation changes
 let lastUrl = location.href;
@@ -182,8 +164,8 @@ new MutationObserver(() => {
   const url = location.href;
   if (url !== lastUrl) {
     lastUrl = url;
-    if (!document.querySelector(".ytdlp-container")) {
-      setTimeout(addDownloadButtons, 1000);
+    if (!document.querySelector(".ytdlp-main-button")) {
+      setTimeout(addDownloadButton, 1000);
     }
   }
 }).observe(document, { subtree: true, childList: true });
